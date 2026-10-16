@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Frame to GIF — cover</title>
+<style>
+  /* Brand palette (from _MY BRAND.ai) */
+  :root {
+    --charcoal: #221F20;
+    --charcoal-2: #2B2728;
+    --petrol: #213E49;
+    --navy: #143353;
+    --blue: #3B84BA;
+    --teal: #4CA8B8;
+    --mauve: #6A4560;
+    --coral: #FB635C;
+    --red: #E8535A;
+    --blush: #F09B95;
+    --mist: #F9EDEC;
+    --brand-gradient:
+      radial-gradient(120% 90% at 0% 0%, #4CA8B8 0%, transparent 55%),
+      radial-gradient(90% 80% at 0% 100%, #143353 0%, transparent 70%),
+      radial-gradient(90% 90% at 100% 100%, #EC5A5C 0%, transparent 70%),
+      radial-gradient(80% 70% at 100% 0%, #F3E4E6 0%, transparent 65%),
+      linear-gradient(135deg, #3B84BA 0%, #6A4560 55%, #E8535A 100%);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--charcoal); }
+  body { font-family: "Adrianna Extended", "Adrianna", sans-serif; color: #fff; position: relative; }
+
+  /* Soft mesh glow behind the right side */
+  .glow {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(700px 520px at 1430px 330px, rgba(59, 132, 186, .55), transparent 70%),
+      radial-gradient(640px 520px at 1650px 820px, rgba(232, 83, 90, .50), transparent 70%),
+      radial-gradient(520px 420px at 1180px 900px, rgba(106, 69, 96, .55), transparent 70%),
+      radial-gradient(420px 360px at 1820px 180px, rgba(240, 155, 149, .30), transparent 70%);
+    filter: blur(20px);
+  }
+  .grain {
+    position: absolute; inset: 0; opacity: .06; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+
+  /* ---------- Left: copy ---------- */
+  .copy { position: absolute; left: 128px; top: 0; bottom: 0; width: 820px; display: flex; flex-direction: column; justify-content: center; }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 14px; align-self: flex-start;
+    font-weight: 600; font-size: 20px; letter-spacing: .28em; text-transform: uppercase; color: var(--blush);
+    margin-bottom: 44px;
+  }
+  .eyebrow i { width: 44px; height: 2px; background: var(--coral); display: block; }
+  h1 {
+    font-weight: 700; font-size: 132px; line-height: .98; letter-spacing: -0.01em; text-transform: uppercase;
+    background: linear-gradient(95deg, #4CA8B8 0%, #6E87AE 28%, #B8A3B7 55%, #F2A7A2 78%, #FB635C 100%);
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+    padding-bottom: 8px;
+  }
+  .lede { margin-top: 40px; font-weight: 300; font-size: 32px; line-height: 1.4; color: rgba(255,255,255,.86); max-width: 680px; }
+  .lede b { font-weight: 600; color: #fff; }
+  .chips { margin-top: 48px; display: flex; flex-wrap: wrap; gap: 14px; max-width: 760px; }
+  .chip {
+    font-weight: 500; font-size: 19px; letter-spacing: .02em; color: rgba(255,255,255,.9);
+    padding: 13px 22px; border-radius: 999px; border: 1.5px solid rgba(255,255,255,.18); background: rgba(255,255,255,.04);
+  }
+  .sign { position: absolute; left: 128px; bottom: 76px; display: flex; align-items: center; gap: 18px; font-weight: 600; font-size: 19px; letter-spacing: .04em; color: rgba(255,255,255,.75); }
+  .sign svg { width: 22px; height: 30px; }
+
+  /* ---------- Right: GIF card ---------- */
+  .gif {
+    position: absolute; left: 1000px; top: 196px; width: 560px; height: 560px; border-radius: 32px;
+    background: var(--brand-gradient); overflow: hidden;
+    box-shadow: 0 50px 120px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.08) inset;
+  }
+  .gif .mark { position: absolute; width: 150px; height: 204px; top: 168px; }
+  .gif .mark svg { width: 100%; height: 100%; display: block; }
+  .badge {
+    position: absolute; left: 32px; top: 32px; padding: 10px 18px; border-radius: 999px;
+    background: #fff; color: var(--charcoal); font-weight: 700; font-size: 20px; letter-spacing: .14em;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .badge::before { content: ""; width: 10px; height: 10px; border-radius: 50%; background: var(--coral); }
+  .timeline { position: absolute; left: 32px; right: 200px; bottom: 32px; display: flex; gap: 8px; }
+  .timeline span { flex: 1; height: 6px; border-radius: 3px; background: rgba(255,255,255,.28); }
+  .timeline span.on { background: #fff; }
+
+  /* ---------- Right: plugin window ---------- */
+  .win {
+    position: absolute; left: 1384px; top: 398px; width: 420px; border-radius: 18px;
+    background: #2C2C2C; color: #fff; overflow: hidden;
+    font-family: Inter, -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+    box-shadow: 0 60px 140px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.1);
+  }
+  .win-bar { height: 52px; display: flex; align-items: center; gap: 10px; padding: 0 20px; border-bottom: 1px solid rgba(255,255,255,.08); font-weight: 600; font-size: 15px; }
+  .win-bar .dot { width: 18px; height: 18px; border-radius: 5px; background: var(--brand-gradient); }
+  .win-bar .x { margin-left: auto; color: rgba(255,255,255,.45); font-size: 18px; font-weight: 400; }
+  .win-head { padding: 18px 20px 14px; display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .win-head b { display: block; font-size: 15px; font-weight: 600; }
+  .win-head small { color: rgba(255,255,255,.5); font-size: 13px; }
+  .win-head .sel { margin-left: auto; font-size: 13px; padding: 7px 12px; border: 1px solid rgba(255,255,255,.14); border-radius: 7px; color: rgba(255,255,255,.85); }
+  .rows { padding: 6px 0; }
+  .row { display: flex; align-items: center; gap: 12px; height: 62px; padding: 0 20px; font-size: 14px; }
+  .row.active { background: rgba(251, 99, 92, .12); box-shadow: inset 3px 0 0 var(--coral); }
+  .row .n { width: 14px; text-align: right; color: rgba(255,255,255,.45); font-variant-numeric: tabular-nums; }
+  .thumb { width: 64px; height: 42px; border-radius: 6px; background: var(--brand-gradient); position: relative; overflow: hidden; flex: none; }
+  .thumb svg { position: absolute; top: 9px; width: 18px; height: 24px; }
+  .row .name { flex: 1; }
+  .row .name b { display: block; font-weight: 500; }
+  .row .name small { color: rgba(255,255,255,.45); font-size: 12px; }
+  .row .ms { font-size: 13px; padding: 6px 10px; border-radius: 6px; border: 1px solid rgba(255,255,255,.12); color: rgba(255,255,255,.75); font-variant-numeric: tabular-nums; }
+  .win-foot { display: flex; align-items: center; gap: 12px; padding: 16px 20px 20px; border-top: 1px solid rgba(255,255,255,.08); }
+  .win-foot .total { flex: 1; color: rgba(255,255,255,.55); font-size: 13px; }
+  .cta {
+    padding: 12px 22px; border-radius: 9px; font-weight: 600; font-size: 15px; color: #fff;
+    background: linear-gradient(100deg, #E8535A, #FB635C 60%, #F28B80);
+    box-shadow: 0 10px 24px rgba(251, 99, 92, .35);
+  }
+</style>
+</head>
+<body>
+  <!-- Brand monogram, traced from _MY BRAND.ai (artboard 2) -->
+  <svg width="0" height="0" style="position:absolute">
+    <defs>
+      <symbol id="r" viewBox="-30.97 -34.184 38.331 52.019">
+        <path transform="scale(1,-1)" d="M0 0C-.484 1.184-1.121 2.351-1.868 3.426 2.637 6.279 5.1 10.909 5.1 16.591 5.1 27.936-2.537 34.184-16.406 34.184-20.761 34.184-25.53 33.506-30.199 32.225L-30.97 32.014V-14.211C-28.007-15.773-24.828-16.978-21.489-17.775V.181H-16.037C-11.528.181-9.943-.679-8.659-3.825L-2.948-17.835H7.361Z"/>
+      </symbol>
+    </defs>
+  </svg>
+
+  <div class="glow"></div>
+  <div class="grain"></div>
+
+  <section class="copy">
+    <div class="eyebrow"><i></i>Figma plugin</div>
+    <h1>.Frame<br>to GIF</h1>
+    <p class="lede">Turn your frames into <b>animated GIFs</b>.<br>Select, reorder, export.</p>
+    <div class="chips">
+      <span class="chip">Per-frame timing</span>
+      <span class="chip">Ping-pong</span>
+      <span class="chip">Transparency</span>
+      <span class="chip">Optimized file size</span>
+    </div>
+  </section>
+
+  <div class="sign">
+    <svg fill="#FB635C"><use href="#r"/></svg>
+    Riccardo Maria Esposito
+  </div>
+
+  <!-- The exported GIF, with onion-skin trails suggesting motion -->
+  <div class="gif">
+    <div class="badge">GIF</div>
+    <div class="mark" style="left:44px;opacity:.12"><svg fill="#fff"><use href="#r"/></svg></div>
+    <div class="mark" style="left:134px;opacity:.3"><svg fill="#fff"><use href="#r"/></svg></div>
+    <div class="mark" style="left:224px"><svg fill="#fff"><use href="#r"/></svg></div>
+    <div class="timeline"><span class="on"></span><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div>
+  </div>
+
+  <!-- Plugin window -->
+  <div class="win">
+    <div class="win-bar"><span class="dot"></span>Frame to GIF<span class="x">×</span></div>
+    <div class="win-head">
+      <div><b>4 frames selected</b><small>Drag to reorder</small></div>
+      <span class="sel">Position ▾</span>
+    </div>
+    <div class="rows">
+      <div class="row"><span class="n">1</span><span class="thumb"><svg fill="#fff" style="left:8px"><use href="#r"/></svg></span><span class="name"><b>Step 1</b><small>1080 × 1080</small></span><span class="ms">500 ms</span></div>
+      <div class="row"><span class="n">2</span><span class="thumb"><svg fill="#fff" style="left:18px"><use href="#r"/></svg></span><span class="name"><b>Step 2</b><small>1080 × 1080</small></span><span class="ms">500 ms</span></div>
+      <div class="row active"><span class="n">3</span><span class="thumb"><svg fill="#fff" style="left:28px"><use href="#r"/></svg></span><span class="name"><b>Step 3</b><small>1080 × 1080</small></span><span class="ms">1000 ms</span></div>
+      <div class="row"><span class="n">4</span><span class="thumb"><svg fill="#fff" style="left:38px"><use href="#r"/></svg></span><span class="name"><b>Step 4</b><small>1080 × 1080</small></span><span class="ms">500 ms</span></div>
+    </div>
+    <div class="win-foot"><span class="total">4 frames · 2.5 s</span><span class="cta">Create GIF</span></div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Frame to GIF — harness</title>
+<style>
+  body { font: 13px system-ui; margin: 16px; display: flex; gap: 24px; background: #2c2c2c; color: #eee; }
+  iframe { width: 340px; height: 640px; border: 0; border-radius: 8px; background: #fff; }
+  #log { font: 11px ui-monospace, monospace; white-space: pre-wrap; max-width: 420px; }
+  button { margin: 0 6px 8px 0; }
+</style>
+</head>
+<body>
+<iframe id="ui" src="../ui.html"></iframe>
+<div>
+  <div>
+    <button onclick="select(6)">Seleziona 6 frame</button>
+    <button onclick="select(1)">Seleziona 1 frame</button>
+    <button onclick="select(0)">Nessuna selezione</button>
+    <button onclick="selectPhoto()">Frame "foto" (gradienti)</button>
+  </div>
+  <div id="log"></div>
+</div>
+<script>
+// Emulates code.js: answers the UI's messages with fake frames drawn on canvas.
+const ui = document.getElementById('ui');
+const log = (s) => { document.getElementById('log').textContent += s + '\n'; };
+const send = (msg) => ui.contentWindow.postMessage({ pluginMessage: msg }, '*');
+let version = 0;
+let current = [];
+window.inserted = null;
+
+function drawFlat(ctx, i, n, w, h) {
+  ctx.fillStyle = '#F5F3FF'; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = '#7C3AED';
+  const x = 40 + (w - 80) * (i / Math.max(1, n - 1));
+  ctx.beginPath(); ctx.arc(x, h / 2, 28, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#111827'; ctx.font = '600 18px system-ui'; ctx.fillText(`Frame ${i + 1}`, 16, 30);
+}
+function drawPhoto(ctx, i, n, w, h) {
+  const g = ctx.createLinearGradient(0, 0, w, h);
+  g.addColorStop(0, `hsl(${i * 50}, 80%, 55%)`); g.addColorStop(1, `hsl(${i * 50 + 160}, 80%, 45%)`);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+  const r = ctx.createRadialGradient(w / 2, h / 2, 5, w / 2, h / 2, 90);
+  r.addColorStop(0, 'rgba(255,255,255,.9)'); r.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = r; ctx.fillRect(0, 0, w, h);
+}
+
+function makeFrames(n, kind) {
+  return Array.from({ length: n }, (_, i) => ({
+    id: `1:${100 + i}`, name: kind === 'photo' ? `Photo ${i + 1}` : `Step ${i + 1}${i === 2 ? ' [1s]' : ''}`,
+    type: 'FRAME', width: 320, height: 200, x: (i % 3) * 400, y: Math.floor(i / 3) * 300 + (i % 2) * 6,
+    layer: [0, i], kind, index: i, count: n,
+  }));
+}
+
+function render(f, scale) {
+  const c = document.createElement('canvas');
+  c.width = Math.round(f.width * scale); c.height = Math.round(f.height * scale);
+  const ctx = c.getContext('2d');
+  ctx.scale(scale, scale);
+  (f.kind === 'photo' ? drawPhoto : drawFlat)(ctx, f.index, f.count, f.width, f.height);
+  return new Promise((res) => c.toBlob(async (b) => res(new Uint8Array(await b.arrayBuffer())), 'image/png'));
+}
+
+async function publish(list) {
+  current = list;
+  const v = ++version;
+  send({ type: 'selection', version: v, frames: list.map(({ kind, index, count, ...f }) => f), container: null, canUseChildren: false, useChildren: false });
+  for (const f of list) send({ type: 'thumb', version: v, id: f.id, bytes: await render(f, 80 / 320) });
+}
+const select = (n) => publish(makeFrames(n, 'flat'));
+const selectPhoto = () => publish(makeFrames(4, 'photo'));
+
+window.addEventListener('message', async (e) => {
+  const msg = e.data && e.data.pluginMessage;
+  if (!msg) return;
+  log('← ' + msg.type);
+  if (msg.type === 'ready') { send({ type: 'init', settings: null }); select(6); }
+  if (msg.type === 'export') {
+    for (let i = 0; i < msg.ids.length; i++) {
+      const f = current.find((x) => x.id === msg.ids[i]);
+      send({ type: 'export-frame', id: f.id, index: i, total: msg.ids.length, bytes: await render(f, msg.scale) });
+    }
+    send({ type: 'export-done' });
+  }
+  if (msg.type === 'insert') { window.inserted = msg; log(`  insert ${msg.width}×${msg.height} ${msg.bytes.length} bytes`); }
+  if (msg.type === 'notify') log('  notify: ' + msg.message);
+});
+</script>
+</body>
+</html>

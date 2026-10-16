@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: var(--figma-color-bg, #ffffff);
+    --bg2: var(--figma-color-bg-secondary, #f5f5f5);
+    --hover: var(--figma-color-bg-hover, #f0f0f0);
+    --selected: var(--figma-color-bg-selected, #e5f4ff);
+    --text: var(--figma-color-text, #1e1e1e);
+    --text2: var(--figma-color-text-secondary, #757575);
+    --text3: var(--figma-color-text-tertiary, #b3b3b3);
+    --border: var(--figma-color-border, #e6e6e6);
+    --brand: var(--figma-color-bg-brand, #0d99ff);
+    --brand-hover: var(--figma-color-bg-brand-hover, #007be5);
+    --brand-text: var(--figma-color-text-brand, #007be5);
+    --onbrand: var(--figma-color-text-onbrand, #ffffff);
+    --danger: var(--figma-color-text-danger, #dc3412);
+    --checker-a: var(--figma-color-bg-secondary, #f0f0f0);
+    --checker-b: var(--figma-color-bg, #ffffff);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body {
+    font: 11px/16px Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--text);
+    background: var(--bg);
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  .view { display: flex; flex-direction: column; height: 100vh; }
+  .view[hidden] { display: none; }
+  .checker {
+    background-color: var(--checker-b);
+    background-image:
+      linear-gradient(45deg, var(--checker-a) 25%, transparent 25%, transparent 75%, var(--checker-a) 75%),
+      linear-gradient(45deg, var(--checker-a) 25%, transparent 25%, transparent 75%, var(--checker-a) 75%);
+    background-size: 12px 12px;
+    background-position: 0 0, 6px 6px;
+  }
+
+  /* Header */
+  .top { display: flex; align-items: center; gap: 6px; padding: 12px 12px 10px; border-bottom: 1px solid var(--border); }
+  .top .title { flex: 1; min-width: 0; }
+  .top strong { display: block; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .top .title span { color: var(--text2); }
+  select, input[type=number] {
+    height: 28px; border: 1px solid var(--border); border-radius: 5px;
+    background: var(--bg); padding: 0 6px; min-width: 0;
+  }
+  select:focus, input:focus { outline: none; border-color: var(--brand); box-shadow: inset 0 0 0 1px var(--brand); }
+  .icon-btn {
+    width: 28px; height: 28px; flex: none; border: 1px solid var(--border); border-radius: 5px;
+    background: var(--bg); cursor: pointer; display: grid; place-items: center;
+  }
+  .icon-btn:hover { background: var(--hover); }
+  .icon-btn:disabled { opacity: .4; cursor: default; }
+
+  .children-bar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--selected); border-bottom: 1px solid var(--border); cursor: pointer; }
+  .children-bar[hidden] { display: none; }
+
+  /* Frame list */
+  .list-wrap { flex: 1 1 auto; min-height: 96px; overflow-y: auto; }
+  #list { list-style: none; padding: 4px 0; }
+  #list li { position: relative; display: flex; align-items: center; gap: 8px; height: 50px; padding: 0 12px 0 6px; }
+  #list li:hover { background: var(--hover); }
+  #list li.dragging { opacity: .4; }
+  #list li.drop-before::before, #list li.drop-after::after {
+    content: ""; position: absolute; left: 8px; right: 8px; height: 2px; background: var(--brand); border-radius: 1px;
+  }
+  #list li.drop-before::before { top: -1px; }
+  #list li.drop-after::after { bottom: -1px; }
+  .grip { width: 12px; flex: none; color: var(--text3); cursor: grab; text-align: center; letter-spacing: -2px; user-select: none; }
+  .idx { width: 16px; flex: none; text-align: right; color: var(--text2); font-variant-numeric: tabular-nums; }
+  .thumb { width: 40px; height: 40px; flex: none; border-radius: 4px; border: 1px solid var(--border); object-fit: contain; }
+  .thumb:not([src]) { visibility: visible; }
+  .info { flex: 1; min-width: 0; }
+  .info .name { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .info .sub { color: var(--text2); }
+  .delay-box { position: relative; flex: none; }
+  .delay-box input { width: 70px; padding-right: 22px; text-align: right; }
+  .delay-box span { position: absolute; right: 6px; top: 6px; color: var(--text3); pointer-events: none; }
+
+  .empty { padding: 28px 24px; text-align: center; color: var(--text2); }
+  .empty[hidden] { display: none; }
+  .empty svg { display: block; margin: 0 auto 12px; color: var(--text3); }
+  .empty strong { display: block; color: var(--text); font-size: 12px; margin-bottom: 4px; }
+  .empty code { background: var(--bg2); border-radius: 3px; padding: 0 3px; }
+
+  /* Settings */
+  .settings { border-top: 1px solid var(--border); padding: 10px 12px 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px 8px; }
+  .field > label { display: block; color: var(--text2); margin-bottom: 4px; }
+  .field .inline { display: flex; gap: 6px; }
+  .field .inline > * { flex: 1; }
+  .field select, .field input[type=number] { width: 100%; }
+  .seg { display: flex; height: 28px; border: 1px solid var(--border); border-radius: 5px; overflow: hidden; }
+  .seg button { flex: 1; border: 0; background: transparent; cursor: pointer; }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .seg button:hover { background: var(--hover); }
+  .seg button.on { background: var(--selected); color: var(--brand-text); font-weight: 600; }
+  .color { display: flex; align-items: center; gap: 6px; height: 28px; border: 1px solid var(--border); border-radius: 5px; padding: 0 6px; }
+  .color.disabled { opacity: .4; pointer-events: none; }
+  .color input[type=color] { width: 16px; height: 16px; border: 0; padding: 0; background: none; cursor: pointer; }
+  .color input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+  .color input[type=color]::-webkit-color-swatch { border: 1px solid var(--border); border-radius: 3px; }
+  .color span { font-variant-numeric: tabular-nums; text-transform: uppercase; }
+  .checks { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .check { display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
+  .check input { accent-color: var(--brand); margin: 0; }
+
+  /* Footer */
+  footer { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--border); }
+  footer .summary { flex: 1; min-width: 0; color: var(--text2); }
+  .primary, .secondary {
+    height: 32px; padding: 0 14px; border-radius: 5px; font-weight: 600; cursor: pointer; white-space: nowrap;
+  }
+  .primary { border: 0; background: var(--brand); color: var(--onbrand); }
+  .primary:hover { background: var(--brand-hover); }
+  .primary:disabled { opacity: .4; cursor: default; background: var(--brand); }
+  .secondary { border: 1px solid var(--border); background: var(--bg); }
+  .secondary:hover { background: var(--hover); }
+
+  /* Progress */
+  .center { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 32px; gap: 12px; }
+  .bar { height: 6px; border-radius: 3px; background: var(--bg2); overflow: hidden; }
+  .bar div { height: 100%; width: 0; background: var(--brand); transition: width .15s; }
+  #progressLabel { color: var(--text2); text-align: center; font-variant-numeric: tabular-nums; }
+  .center .secondary { align-self: center; }
+
+  /* Result */
+  .preview { flex: 1; min-height: 0; margin: 12px; border: 1px solid var(--border); border-radius: 6px; display: grid; place-items: center; overflow: hidden; }
+  .preview img { max-width: 100%; max-height: 100%; object-fit: contain; image-rendering: auto; }
+  .meta { padding: 0 12px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .meta div { background: var(--bg2); border-radius: 5px; padding: 6px 8px; }
+  .meta b { display: block; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .meta span { color: var(--text2); }
+  .actions { display: flex; gap: 8px; padding: 12px; }
+  .actions .primary { flex: 1; }
+  .error { color: var(--danger); }
+</style>
+</head>
+<body>
+
+<!-- ============ Setup ============ -->
+<section class="view" id="setupView">
+  <div class="top">
+    <div class="title">
+      <strong id="count">No frames selected</strong>
+      <span id="countSub">Select frames on the canvas</span>
+    </div>
+    <select id="sort" title="Frame order">
+      <option value="position">Position</option>
+      <option value="name">Name</option>
+      <option value="layer">Layers</option>
+      <option value="manual" hidden>Manual</option>
+    </select>
+    <button class="icon-btn" id="reverse" title="Reverse order" aria-label="Reverse order">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M3.5 1v10M1 3.5 3.5 1 6 3.5M8.5 11V1M6 8.5 8.5 11 11 8.5"/></svg>
+    </button>
+  </div>
+
+  <label class="children-bar" id="childrenBar" hidden>
+    <input type="checkbox" id="useChildren">
+    <span>Use the frames inside as animation frames</span>
+  </label>
+
+  <div class="list-wrap">
+    <ol id="list"></ol>
+    <div class="empty" id="empty">
+      <svg width="40" height="40" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5">
+        <rect x="4" y="8" width="20" height="16" rx="2"/><rect x="10" y="14" width="20" height="16" rx="2" fill="var(--bg)"/><rect x="16" y="20" width="20" height="16" rx="2" fill="var(--bg)"/>
+      </svg>
+      <strong>Select the frames to animate</strong>
+      Each frame becomes one frame of the GIF. Drag the rows to change the order.<br><br>
+      Tip: add <code>[300ms]</code> or <code>[2s]</code> to a frame's name to give it its own duration.
+    </div>
+  </div>
+
+  <div class="settings">
+    <div class="field">
+      <label for="delay">Frame duration</label>
+      <div class="delay-box" style="width:100%">
+        <input type="number" id="delay" min="20" step="10" style="width:100%">
+        <span>ms</span>
+      </div>
+    </div>
+    <div class="field">
+      <label>Scale</label>
+      <div class="seg" id="scale">
+        <button data-v="0.5">0.5×</button><button data-v="1">1×</button><button data-v="2">2×</button><button data-v="3">3×</button>
+      </div>
+    </div>
+    <div class="field">
+      <label for="loop">Loop</label>
+      <div class="inline">
+        <select id="loop">
+          <option value="infinite">Forever</option>
+          <option value="once">Once</option>
+          <option value="custom">N times</option>
+        </select>
+        <input type="number" id="loopCount" min="2" max="1000" hidden>
+      </div>
+    </div>
+    <div class="field">
+      <label for="colors">Colors</label>
+      <select id="colors">
+        <option value="256">256 (best quality)</option>
+        <option value="128">128</option>
+        <option value="64">64</option>
+        <option value="32">32</option>
+        <option value="16">16 (smallest file)</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="palette">Palette</label>
+      <select id="palette">
+        <option value="global">One for the whole GIF</option>
+        <option value="local">One per frame</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Background</label>
+      <label class="color" id="bgBox">
+        <input type="color" id="background">
+        <span id="bgHex"></span>
+      </label>
+    </div>
+    <div class="checks">
+      <label class="check"><input type="checkbox" id="dither"> Dithering</label>
+      <label class="check"><input type="checkbox" id="transparent"> Transparent background</label>
+      <label class="check" title="Only encode the areas that change between frames"><input type="checkbox" id="optimize"> Optimize size</label>
+      <label class="check" title="Plays the frames forward, then backward"><input type="checkbox" id="pingpong"> Ping-pong</label>
+    </div>
+  </div>
+
+  <footer>
+    <div class="summary" id="summary"></div>
+    <button class="primary" id="make" disabled>Create GIF</button>
+  </footer>
+</section>
+
+<!-- ============ Progress ============ -->
+<section class="view" id="progressView" hidden>
+  <div class="center">
+    <div class="bar"><div id="progressBar"></div></div>
+    <div id="progressLabel">Preparing…</div>
+    <button class="secondary" id="cancel">Cancel</button>
+  </div>
+</section>
+
+<!-- ============ Result ============ -->
+<section class="view" id="resultView" hidden>
+  <div class="preview checker"><img id="resultImg" alt="GIF preview"></div>
+  <div class="meta">
+    <div><b id="mSize">–</b><span>Size</span></div>
+    <div><b id="mDims">–</b><span>Dimensions</span></div>
+    <div><b id="mFrames">–</b><span>Frames</span></div>
+  </div>
+  <div class="actions">
+    <button class="secondary" id="back">Edit</button>
+    <button class="secondary" id="insert">Insert into Figma</button>
+    <button class="primary" id="download">Download GIF</button>
+  </div>
+</section>
+
+<script>
+/* =====================================================================
+ * GIF encoder (GIF89a): median-cut quantizer, Floyd–Steinberg dithering,
+ * LZW compression, frame differencing. No dependencies.
+ * ===================================================================== */
+const Gif = (() => {
+  class ByteWriter {
+    constructor(size = 1 << 16) { this.buf = new Uint8Array(size); this.len = 0; }
+    ensure(n) {
+      if (this.len + n <= this.buf.length) return;
+      let size = this.buf.length * 2;
+      while (size < this.len + n) size *= 2;
+      const next = new Uint8Array(size);
+      next.set(this.buf.subarray(0, this.len));
+      this.buf = next;
+    }
+    byte(b) { this.ensure(1); this.buf[this.len++] = b; }
+    u16(v) { this.ensure(2); this.buf[this.len++] = v & 255; this.buf[this.len++] = (v >> 8) & 255; }
+    str(s) { for (let i = 0; i < s.length; i++) this.byte(s.charCodeAt(i)); }
+    bytes(arr) { this.ensure(arr.length); this.buf.set(arr, this.len); this.len += arr.length; }
+    result() { return this.buf.slice(0, this.len); }
+  }
+
+  // ---------- Quantization ----------
+
+  // Collects colors of one or more images. If they fit in the palette the
+  // palette is exact (typical for flat UI); otherwise median cut is used.
+  class ColorCounter {
+    constructor(maxColors) {
+      this.max = maxColors;
+      this.exact = new Map();
+      this.exactOk = true;
+      this.hist = new Uint32Array(32768);
+      this.rs = new Float64Array(32768);
+      this.gs = new Float64Array(32768);
+      this.bs = new Float64Array(32768);
+    }
+    add(data, W, rect, transparent) {
+      const { hist, rs, gs, bs, exact } = this;
+      let last = -1;
+      for (let y = rect.y0; y < rect.y1; y++) {
+        for (let i = (y * W + rect.x0) * 4, end = (y * W + rect.x1) * 4; i < end; i += 4) {
+          if (transparent && data[i + 3] < 128) continue;
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          if (this.exactOk) {
+            const c = (r << 16) | (g << 8) | b;
+            if (c !== last && !exact.has(c)) {
+              if (exact.size >= this.max) this.exactOk = false;
+              else exact.set(c, exact.size);
+            }
+            last = c;
+          }
+          const k = ((r >> 3) << 10) | ((g >> 3) << 5) | (b >> 3);
+          hist[k]++; rs[k] += r; gs[k] += g; bs[k] += b;
+        }
+      }
+    }
+    build() {
+      if (this.exactOk) {
+        const colors = [...this.exact.keys()];
+        if (!colors.length) colors.push(0);
+        const rgb = new Uint8Array(colors.length * 3);
+        const map = new Map();
+        colors.forEach((c, i) => {
+          rgb[i * 3] = c >> 16; rgb[i * 3 + 1] = (c >> 8) & 255; rgb[i * 3 + 2] = c & 255;
+          map.set(c, i);
+        });
+        return { rgb, count: colors.length, exact: map, lookup: null };
+      }
+      const rgb = medianCut(this.hist, this.rs, this.gs, this.bs, this.max);
+      return { rgb, count: rgb.length / 3, exact: null, lookup: makeLookup(rgb) };
+    }
+  }
+
+  function medianCut(hist, rs, gs, bs, maxColors) {
+    const keys = [];
+    for (let k = 0; k < 32768; k++) if (hist[k]) keys.push(k);
+    const arr = Int32Array.from(keys);
+    const comps = [k => k >> 10, k => (k >> 5) & 31, k => k & 31];
+    const weights = [1.0, 1.2, 0.8];
+
+    const makeBox = (lo, hi) => {
+      let rmin = 31, rmax = 0, gmin = 31, gmax = 0, bmin = 31, bmax = 0, count = 0;
+      for (let i = lo; i < hi; i++) {
+        const k = arr[i], r = k >> 10, g = (k >> 5) & 31, b = k & 31;
+        if (r < rmin) rmin = r; if (r > rmax) rmax = r;
+        if (g < gmin) gmin = g; if (g > gmax) gmax = g;
+        if (b < bmin) bmin = b; if (b > bmax) bmax = b;
+        count += hist[k];
+      }
+      return { lo, hi, count, ranges: [rmax - rmin, gmax - gmin, bmax - bmin] };
+    };
+
+    const boxes = [makeBox(0, arr.length)];
+    while (boxes.length < maxColors) {
+      // First split the most populated boxes, then the biggest ones.
+      const byPopulation = boxes.length < maxColors * 0.6;
+      let pick = -1, best = -1;
+      for (let i = 0; i < boxes.length; i++) {
+        const b = boxes[i];
+        if (b.hi - b.lo < 2) continue;
+        const [rr, gr, br] = b.ranges;
+        const score = byPopulation ? b.count : b.count * (rr + 1) * (gr + 1) * (br + 1);
+        if (score > best) { best = score; pick = i; }
+      }
+      if (pick < 0) break;
+
+      const box = boxes[pick];
+      let ch = 0;
+      for (let c = 1; c < 3; c++) if (box.ranges[c] * weights[c] > box.ranges[ch] * weights[ch]) ch = c;
+      const comp = comps[ch];
+      arr.subarray(box.lo, box.hi).sort((a, b) => comp(a) - comp(b));
+
+      const half = box.count / 2;
+      let acc = 0, m = box.lo;
+      for (; m < box.hi - 1; m++) { acc += hist[arr[m]]; if (acc >= half) break; }
+      m = Math.min(Math.max(m + 1, box.lo + 1), box.hi - 1);
+      boxes.splice(pick, 1, makeBox(box.lo, m), makeBox(m, box.hi));
+    }
+
+    const rgb = new Uint8Array(boxes.length * 3);
+    boxes.forEach((box, i) => {
+      let n = 0, r = 0, g = 0, b = 0;
+      for (let j = box.lo; j < box.hi; j++) {
+        const k = arr[j];
+        n += hist[k]; r += rs[k]; g += gs[k]; b += bs[k];
+      }
+      rgb[i * 3] = Math.round(r / n); rgb[i * 3 + 1] = Math.round(g / n); rgb[i * 3 + 2] = Math.round(b / n);
+    });
+    return rgb;
+  }
+
+  // Nearest palette color, cached on a 6-bit-per-channel grid.
+  function makeLookup(rgb) {
+    const n = rgb.length / 3;
+    const cache = new Int16Array(1 << 18).fill(-1);
+    return (r, g, b) => {
+      const key = ((r >> 2) << 12) | ((g >> 2) << 6) | (b >> 2);
+      let idx = cache[key];
+      if (idx < 0) {
+        const cr = (r & ~3) | 2, cg = (g & ~3) | 2, cb = (b & ~3) | 2;
+        let best = Infinity;
+        for (let i = 0, p = 0; i < n; i++, p += 3) {
+          const dr = cr - rgb[p], dg = cg - rgb[p + 1], db = cb - rgb[p + 2];
+          const d = 2 * dr * dr + 4 * dg * dg + 3 * db * db;
+          if (d < best) { best = d; idx = i; }
+        }
+        cache[key] = idx;
+      }
+      return idx;
+    };
+  }
+
+  // Maps the pixels of `rect` to palette indices.
+  function indexPixels(data, W, rect, pal, dither, transIdx) {
+    const w = rect.x1 - rect.x0, h = rect.y1 - rect.y0;
+    const out = new Uint8Array(w * h);
+
+    if (pal.exact || !dither) {
+      for (let y = 0, o = 0; y < h; y++) {
+        for (let i = ((y + rect.y0) * W + rect.x0) * 4, x = 0; x < w; x++, i += 4, o++) {
+          if (transIdx >= 0 && data[i + 3] < 128) { out[o] = transIdx; continue; }
+          out[o] = pal.exact
+            ? pal.exact.get((data[i] << 16) | (data[i + 1] << 8) | data[i + 2])
+            : pal.lookup(data[i], data[i + 1], data[i + 2]);
+        }
+      }
+      return out;
+    }
+
+    // Floyd–Steinberg error diffusion.
+    const P = pal.rgb;
+    let cur = new Float32Array((w + 2) * 3), next = new Float32Array((w + 2) * 3);
+    for (let y = 0; y < h; y++) {
+      next.fill(0);
+      for (let x = 0; x < w; x++) {
+        const i = ((y + rect.y0) * W + rect.x0 + x) * 4, o = y * w + x;
+        if (transIdx >= 0 && data[i + 3] < 128) { out[o] = transIdx; continue; }
+        const e = (x + 1) * 3;
+        let r = data[i] + cur[e], g = data[i + 1] + cur[e + 1], b = data[i + 2] + cur[e + 2];
+        r = r < 0 ? 0 : r > 255 ? 255 : r;
+        g = g < 0 ? 0 : g > 255 ? 255 : g;
+        b = b < 0 ? 0 : b > 255 ? 255 : b;
+        const idx = pal.lookup(r | 0, g | 0, b | 0);
+        out[o] = idx;
+        const p = idx * 3;
+        const er = r - P[p], eg = g - P[p + 1], eb = b - P[p + 2];
+        cur[e + 3] += er * 0.4375; cur[e + 4] += eg * 0.4375; cur[e + 5] += eb * 0.4375;
+        next[e - 3] += er * 0.1875; next[e - 2] += eg * 0.1875; next[e - 1] += eb * 0.1875;
+        next[e] += er * 0.3125; next[e + 1] += eg * 0.3125; next[e + 2] += eb * 0.3125;
+        next[e + 3] += er * 0.0625; next[e + 4] += eg * 0.0625; next[e + 5] += eb * 0.0625;
+      }
+      const t = cur; cur = next; next = t;
+    }
+    return out;
+  }
+
+  // ---------- LZW ----------
+
+  // Dictionary keyed by (prefix << 8 | pixel); generation stamps avoid
+  // clearing 1M entries every time the code table resets.
+  const LZW_CODES = new Uint16Array(1 << 20);
+  const LZW_STAMP = new Uint32Array(1 << 20);
+  let lzwGeneration = 0;
+
+  function lzwEncode(indices, minCodeSize, w) {
+    const clear = 1 << minCodeSize, eoi = clear + 1;
+    let codeSize = minCodeSize + 1, maxCode = (1 << codeSize) - 1, next = eoi + 1;
+    let gen = ++lzwGeneration, clearFlag = false;
+    const bytes = new ByteWriter(indices.length + 64);
+    let acc = 0, nbits = 0;
+
+    const emit = (code) => {
+      acc |= code << nbits;
+      nbits += codeSize;
+      while (nbits >= 8) { bytes.byte(acc & 255); acc >>>= 8; nbits -= 8; }
+      if (clearFlag) {
+        codeSize = minCodeSize + 1; maxCode = (1 << codeSize) - 1; clearFlag = false;
+      } else if (next > maxCode) {
+        codeSize++; maxCode = codeSize === 12 ? 4096 : (1 << codeSize) - 1;
+      }
+    };
+
+    emit(clear);
+    let prefix = indices[0];
+    for (let i = 1; i < indices.length; i++) {
+      const k = indices[i];
+      const key = (prefix << 8) | k;
+      if (LZW_STAMP[key] === gen) { prefix = LZW_CODES[key]; continue; }
+      emit(prefix);
+      if (next < 4096) {
+        LZW_CODES[key] = next++; LZW_STAMP[key] = gen;
+      } else {
+        gen = ++lzwGeneration; next = clear + 2; clearFlag = true;
+        emit(clear);
+      }
+      prefix = k;
+    }
+    emit(prefix);
+    emit(eoi);
+    if (nbits > 0) bytes.byte(acc & 255);
+
+    w.byte(minCodeSize);
+    const data = bytes.buf;
+    for (let i = 0; i < bytes.len; i += 255) {
+      const n = Math.min(255, bytes.len - i);
+      w.byte(n);
+      w.bytes(data.subarray(i, i + n));
+    }
+    w.byte(0);
+  }
+
+  // ---------- Container ----------
+
+  const tableBits = (n) => Math.max(1, Math.ceil(Math.log2(Math.max(n, 2))));
+
+  function writeTable(w, rgb, bits) {
+    w.bytes(rgb);
+    for (let i = rgb.length, end = 3 * (1 << bits); i < end; i++) w.byte(0);
+  }
+
+  class Writer {
+    // loop: null = play once, 0 = forever, n = extra repeats.
+    constructor(W, H, { loop, globalPalette, transparent }) {
+      this.w = new ByteWriter();
+      this.global = globalPalette;
+      this.transparent = transparent;
+      this.time = 0;
+      this.lastStart = 0;
+      this.delayPos = -1;
+      this.frames = 0;
+
+      const w = this.w;
+      w.str('GIF89a');
+      w.u16(W); w.u16(H);
+      if (globalPalette) {
+        this.globalBits = tableBits(globalPalette.count + (transparent ? 1 : 0));
+        w.byte(0x80 | 0x70 | (this.globalBits - 1));
+        w.byte(0); w.byte(0);
+        writeTable(w, globalPalette.rgb, this.globalBits);
+      } else {
+        w.byte(0x70); w.byte(0); w.byte(0);
+      }
+      if (loop !== null) {
+        w.byte(0x21); w.byte(0xff); w.byte(11); w.str('NETSCAPE2.0');
+        w.byte(3); w.byte(1); w.u16(loop); w.byte(0);
+      }
+    }
+
+    // Delays are rounded on the cumulative timeline so total duration stays exact.
+    centiseconds(start, end) {
+      return Math.min(65535, Math.max(2, Math.round(end / 10) - Math.round(start / 10)));
+    }
+
+    addFrame(rect, indices, pal, delayMs) {
+      const w = this.w;
+      const start = this.time;
+      this.time += delayMs;
+      this.lastStart = start;
+      const transIdx = this.transparent ? pal.count : -1;
+
+      // Graphic Control Extension
+      w.byte(0x21); w.byte(0xf9); w.byte(4);
+      const disposal = this.transparent ? 2 : 1;
+      w.byte((disposal << 2) | (transIdx >= 0 ? 1 : 0));
+      this.delayPos = w.len;
+      w.u16(this.centiseconds(start, this.time));
+      w.byte(transIdx >= 0 ? transIdx : 0);
+      w.byte(0);
+
+      // Image Descriptor (+ local color table)
+      w.byte(0x2c);
+      w.u16(rect.x0); w.u16(rect.y0); w.u16(rect.x1 - rect.x0); w.u16(rect.y1 - rect.y0);
+      let bits;
+      if (this.global) {
+        bits = this.globalBits;
+        w.byte(0);
+      } else {
+        bits = tableBits(pal.count + (this.transparent ? 1 : 0));
+        w.byte(0x80 | (bits - 1));
+        writeTable(w, pal.rgb, bits);
+      }
+      lzwEncode(indices, Math.max(2, bits), w);
+      this.frames++;
+    }
+
+    // An identical frame just extends the previous one.
+    extendLast(delayMs) {
+      this.time += delayMs;
+      const cs = this.centiseconds(this.lastStart, this.time);
+      this.w.buf[this.delayPos] = cs & 255;
+      this.w.buf[this.delayPos + 1] = (cs >> 8) & 255;
+    }
+
+    finish() { this.w.byte(0x3b); return this.w.result(); }
+  }
+
+  // Smallest rectangle containing every pixel that differs between a and b.
+  function diffRect(a, b, W, H) {
+    const A = new Uint32Array(a.buffer, a.byteOffset, W * H);
+    const B = new Uint32Array(b.buffer, b.byteOffset, W * H);
+    const rowDiffers = (y) => {
+      for (let i = y * W, end = i + W; i < end; i++) if (A[i] !== B[i]) return true;
+      return false;
+    };
+    let top = 0;
+    while (top < H && !rowDiffers(top)) top++;
+    if (top === H) return null;
+    let bottom = H - 1;
+    while (bottom > top && !rowDiffers(bottom)) bottom--;
+    let left = W, right = -1;
+    for (let y = top; y <= bottom; y++) {
+      const o = y * W;
+      for (let x = 0; x < left; x++) if (A[o + x] !== B[o + x]) { left = x; break; }
+      for (let x = W - 1; x > right; x--) if (A[o + x] !== B[o + x]) { right = x; break; }
+    }
+    return { x0: left, y0: top, x1: right + 1, y1: bottom + 1 };
+  }
+
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  /**
+   * seq: [{ id, delay }], bitmaps: Map<id, ImageBitmap>
+   * opts: { colors, dither, transparent, background, optimize, palette, loop }
+   * Returns Uint8Array, or null if cancelled.
+   */
+  async function encode(seq, bitmaps, opts, onProgress, isCancelled) {
+    let W = 1, H = 1;
+    bitmaps.forEach((b) => { W = Math.max(W, b.width); H = Math.max(H, b.height); });
+
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const transparent = !!opts.transparent;
+    const render = (id) => {
+      const bm = bitmaps.get(id);
+      ctx.clearRect(0, 0, W, H);
+      if (!transparent) { ctx.fillStyle = opts.background; ctx.fillRect(0, 0, W, H); }
+      ctx.drawImage(bm, (W - bm.width) >> 1, (H - bm.height) >> 1);
+      return ctx.getImageData(0, 0, W, H).data;
+    };
+
+    const maxColors = Math.max(2, Math.min(256, opts.colors)) - (transparent ? 1 : 0);
+    const full = { x0: 0, y0: 0, x1: W, y1: H };
+    const uniqueIds = [...new Set(seq.map((s) => s.id))];
+    const paletteShare = opts.palette === 'global' ? 0.25 : 0;
+
+    let globalPalette = null;
+    if (opts.palette === 'global') {
+      const counter = new ColorCounter(maxColors);
+      for (let i = 0; i < uniqueIds.length; i++) {
+        counter.add(render(uniqueIds[i]), W, full, transparent);
+        onProgress(paletteShare * (i + 1) / uniqueIds.length, 'Analyzing colors…');
+        await tick();
+        if (isCancelled()) return null;
+      }
+      globalPalette = counter.build();
+    }
+
+    const gif = new Writer(W, H, { loop: opts.loop, globalPalette, transparent });
+    let prev = null;
+    for (let i = 0; i < seq.length; i++) {
+      const data = render(seq[i].id);
+      let rect = full;
+      if (opts.optimize && !transparent && prev) {
+        rect = diffRect(prev, data, W, H);
+        if (!rect) { gif.extendLast(seq[i].delay); continue; }
+      }
+      let pal = globalPalette;
+      if (!pal) {
+        const counter = new ColorCounter(maxColors);
+        counter.add(data, W, rect, transparent);
+        pal = counter.build();
+      }
+      const indices = indexPixels(data, W, rect, pal, opts.dither, transparent ? pal.count : -1);
+      gif.addFrame(rect, indices, pal, seq[i].delay);
+      prev = data;
+
+      onProgress(paletteShare + (1 - paletteShare) * (i + 1) / seq.length, `Encoding frame ${i + 1} of ${seq.length}…`);
+      await tick();
+      if (isCancelled()) return null;
+    }
+    return { bytes: gif.finish(), width: W, height: H, frames: gif.frames, duration: gif.time };
+  }
+
+  return { encode };
+})();
+
+/* =====================================================================
+ * UI
+ * ===================================================================== */
+const $ = (id) => document.getElementById(id);
+const post = (msg) => parent.postMessage({ pluginMessage: msg }, '*');
+const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 });
+
+const DEFAULTS = {
+  delay: 500, scale: 1, loop: 'infinite', loopCount: 3, colors: 256, palette: 'global',
+  background: '#ffffff', dither: true, transparent: false, optimize: true, pingpong: false, sort: 'position',
+};
+let settings = { ...DEFAULTS };
+
+let frames = [];             // frames from the current selection
+let order = [];              // frame ids in GIF order
+let container = null;        // name of the parent when using child frames
+let selectionVersion = 0;
+const delays = new Map();    // per-frame overrides set by the user (ms)
+const thumbs = new Map();    // id -> object URL
+let exportJob = null;
+let cancelled = false;
+let result = null;
+
+const frameById = (id) => frames.find((f) => f.id === id);
+
+function nameDelay(name) {
+  const m = /\[\s*(\d+(?:[.,]\d+)?)\s*(ms|s)\s*\]/i.exec(name);
+  if (!m) return null;
+  const v = parseFloat(m[1].replace(',', '.'));
+  return Math.max(20, Math.round(m[2].toLowerCase() === 's' ? v * 1000 : v));
+}
+
+function frameDelay(id) {
+  if (delays.has(id)) return delays.get(id);
+  const f = frameById(id);
+  return (f && nameDelay(f.name)) || settings.delay;
+}
+
+// ---------- Settings ----------
+
+let saveTimer = null;
+function saveSettings() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => post({ type: 'save-settings', settings }), 300);
+}
+
+function setSetting(key, value) {
+  settings[key] = value;
+  saveSettings();
+  syncSettingsUI();
+  if (key === 'delay') renderList();
+  updateSummary();
+}
+
+function syncSettingsUI() {
+  $('delay').value = settings.delay;
+  document.querySelectorAll('#scale button').forEach((b) => b.classList.toggle('on', Number(b.dataset.v) === settings.scale));
+  $('loop').value = settings.loop;
+  $('loopCount').hidden = settings.loop !== 'custom';
+  $('loopCount').value = settings.loopCount;
+  $('colors').value = String(settings.colors);
+  $('palette').value = settings.palette;
+  $('background').value = settings.background;
+  $('bgHex').textContent = settings.background.replace('#', '');
+  $('bgBox').classList.toggle('disabled', settings.transparent);
+  $('dither').checked = settings.dither;
+  $('transparent').checked = settings.transparent;
+  $('optimize').checked = settings.optimize;
+  $('pingpong').checked = settings.pingpong;
+  $('sort').value = settings.sort;
+}
+
+function bindSettings() {
+  $('delay').addEventListener('change', (e) => {
+    const v = Math.max(20, Math.round(Number(e.target.value) || DEFAULTS.delay));
+    setSetting('delay', v);
+  });
+  $('scale').addEventListener('click', (e) => {
+    const b = e.target.closest('button');
+    if (b) setSetting('scale', Number(b.dataset.v));
+  });
+  $('loop').addEventListener('change', (e) => setSetting('loop', e.target.value));
+  $('loopCount').addEventListener('change', (e) => setSetting('loopCount', Math.min(1000, Math.max(2, Math.round(Number(e.target.value) || 2)))));
+  $('colors').addEventListener('change', (e) => setSetting('colors', Number(e.target.value)));
+  $('palette').addEventListener('change', (e) => setSetting('palette', e.target.value));
+  $('background').addEventListener('input', (e) => setSetting('background', e.target.value));
+  for (const key of ['dither', 'transparent', 'optimize', 'pingpong']) {
+    $(key).addEventListener('change', (e) => setSetting(key, e.target.checked));
+  }
+}
+
+// ---------- Ordering ----------
+
+function sortFrames(list, mode) {
+  const arr = list.slice();
+  if (mode === 'name') {
+    arr.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }));
+  } else if (mode === 'layer') {
+    // Top of the layers panel first.
+    arr.sort((a, b) => {
+      for (let i = 0; i < Math.min(a.layer.length, b.layer.length); i++) {
+        if (a.layer[i] !== b.layer[i]) return b.layer[i] - a.layer[i];
+      }
+      return b.layer.length - a.layer.length;
+    });
+  } else {
+    // Reading order: rows top to bottom, then left to right inside a row.
+    arr.sort((a, b) => a.y - b.y);
+    const rows = [];
+    for (const f of arr) {
+      const row = rows[rows.length - 1];
+      if (row && f.y < row.top + row.height / 2) row.items.push(f);
+      else rows.push({ top: f.y, height: f.height, items: [f] });
+    }
+    return rows.flatMap((r) => r.items.sort((a, b) => a.x - b.x));
+  }
+  return arr;
+}
+
+function applySort() {
+  if (settings.sort === 'manual') return;
+  order = sortFrames(frames, settings.sort).map((f) => f.id);
+}
+
+function moveFrame(id, targetId, after) {
+  if (id === targetId) return;
+  order.splice(order.indexOf(id), 1);
+  const at = order.indexOf(targetId) + (after ? 1 : 0);
+  order.splice(at, 0, id);
+  settings.sort = 'manual';
+  syncSettingsUI();
+  renderList();
+}
+
+// ---------- Frame list ----------
+
+let dragId = null;
+const rowEls = new Map();
+
+function renderList() {
+  const list = $('list');
+  list.textContent = '';
+  rowEls.clear();
+  $('empty').hidden = order.length > 0;
+
+  order.forEach((id, i) => {
+    const f = frameById(id);
+    const li = document.createElement('li');
+    li.draggable = true;
+    li.dataset.id = id;
+
+    const grip = document.createElement('span');
+    grip.className = 'grip';
+    grip.textContent = '⋮⋮';
+    const idx = document.createElement('span');
+    idx.className = 'idx';
+    idx.textContent = i + 1;
+    const img = document.createElement('img');
+    img.className = 'thumb checker';
+    img.alt = '';
+    if (thumbs.has(id)) img.src = thumbs.get(id);
+    const info = document.createElement('div');
+    info.className = 'info';
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = f.name;
+    name.title = f.name;
+    const sub = document.createElement('div');
+    sub.className = 'sub';
+    sub.textContent = `${f.width} × ${f.height}`;
+    info.append(name, sub);
+
+    const box = document.createElement('div');
+    box.className = 'delay-box';
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = 20;
+    input.step = 10;
+    input.title = 'Duration of this frame';
+    input.placeholder = nameDelay(f.name) || settings.delay;
+    if (delays.has(id)) input.value = delays.get(id);
+    input.addEventListener('change', () => {
+      const v = Math.round(Number(input.value));
+      if (!input.value || !v) delays.delete(id);
+      else delays.set(id, Math.max(20, v));
+      input.value = delays.has(id) ? delays.get(id) : '';
+      updateSummary();
+    });
+    input.addEventListener('mousedown', (e) => e.stopPropagation());
+    const unit = document.createElement('span');
+    unit.textContent = 'ms';
+    box.append(input, unit);
+
+    li.append(grip, idx, img, info, box);
+    bindDrag(li, id);
+    list.append(li);
+    rowEls.set(id, li);
+  });
+  updateSummary();
+}
+
+function clearDropMarks() {
+  document.querySelectorAll('.drop-before, .drop-after').forEach((el) => el.classList.remove('drop-before', 'drop-after'));
+}
+
+function bindDrag(li, id) {
+  li.addEventListener('dragstart', (e) => {
+    dragId = id;
+    li.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', id);
+  });
+  li.addEventListener('dragend', () => { dragId = null; li.classList.remove('dragging'); clearDropMarks(); });
+  li.addEventListener('dragover', (e) => {
+    if (!dragId) return;
+    e.preventDefault();
+    const r = li.getBoundingClientRect();
+    const after = e.clientY > r.top + r.height / 2;
+    clearDropMarks();
+    li.classList.add(after ? 'drop-after' : 'drop-before');
+  });
+  li.addEventListener('drop', (e) => {
+    e.preventDefault();
+    if (!dragId) return;
+    const after = li.classList.contains('drop-after');
+    clearDropMarks();
+    moveFrame(dragId, id, after);
+  });
+}
+
+// ---------- Summary ----------
+
+function buildSequence() {
+  const seq = order.map((id) => ({ id, delay: frameDelay(id) }));
+  if (settings.pingpong && seq.length > 2) {
+    for (let i = seq.length - 2; i > 0; i--) seq.push({ ...seq[i] });
+  }
+  return seq;
+}
+
+function outputSize() {
+  let w = 0, h = 0;
+  for (const f of frames) { w = Math.max(w, f.width); h = Math.max(h, f.height); }
+  return { w: Math.round(w * settings.scale), h: Math.round(h * settings.scale) };
+}
+
+const formatSeconds = (ms) => `${nf.format(ms / 1000)} s`;
+
+function updateSummary() {
+  const n = order.length;
+  $('make').disabled = n === 0;
+  $('reverse').disabled = n < 2;
+  $('sort').disabled = n < 2;
+  if (!n) {
+    $('count').textContent = 'No frames selected';
+    $('countSub').textContent = 'Select frames on the canvas';
+    $('summary').textContent = '';
+    return;
+  }
+  $('count').textContent = container || (n === 1 ? frames[0].name : `${n} frames selected`);
+  $('countSub').textContent = container ? `${n} frames inside` : n === 1 ? 'Select more frames to animate them' : 'Drag to reorder';
+  const seq = buildSequence();
+  const total = seq.reduce((s, f) => s + f.delay, 0);
+  const { w, h } = outputSize();
+  $('summary').textContent = `${seq.length} frames · ${formatSeconds(total)} · ${w}×${h} px`;
+}
+
+// ---------- Export ----------
+
+function setProgress(p, label) {
+  $('progressBar').style.width = `${Math.round(p * 100)}%`;
+  $('progressLabel').textContent = label;
+}
+
+function showView(name) {
+  for (const v of ['setup', 'progress', 'result']) $(`${v}View`).hidden = v !== name;
+}
+
+function requestPngs(ids, scale) {
+  return new Promise((resolve, reject) => {
+    const out = new Map();
+    exportJob = {
+      frame(msg) {
+        out.set(msg.id, msg.bytes);
+        setProgress(0.3 * (msg.index + 1) / msg.total, `Exporting frame ${msg.index + 1} of ${msg.total}…`);
+      },
+      done() { exportJob = null; resolve(out); },
+      cancelled() { exportJob = null; resolve(null); },
+      error(message) { exportJob = null; reject(new Error(message)); },
+    };
+    post({ type: 'export', ids, scale });
+  });
+}
+
+function loopValue() {
+  if (settings.loop === 'infinite') return 0;
+  if (settings.loop === 'once') return null;
+  return settings.loopCount > 1 ? settings.loopCount - 1 : null;
+}
+
+function fileName() {
+  const base = container || (order.length === 1 ? frameById(order[0]).name : frameById(order[0]).name.replace(/\s*\d+\s*$/, '') || 'animation');
+  return `${base.replace(/\[[^\]]*\]/g, '').replace(/[\\/:*?"<>|]+/g, '-').trim() || 'animation'}.gif`;
+}
+
+async function makeGif() {
+  if (!order.length) return;
+  cancelled = false;
+  const seq = buildSequence();
+  const ids = [...new Set(order)];
+  const opts = { ...settings, loop: loopValue() };
+  showView('progress');
+  setProgress(0, 'Exporting frames…');
+
+  let bitmaps = null;
+  try {
+    const pngs = await requestPngs(ids, settings.scale);
+    if (!pngs || cancelled) return showView('setup');
+
+    bitmaps = new Map();
+    for (const id of ids) {
+      bitmaps.set(id, await createImageBitmap(new Blob([pngs.get(id)], { type: 'image/png' })));
+    }
+    const out = await Gif.encode(seq, bitmaps, opts,
+      (p, label) => setProgress(0.3 + 0.7 * p, label),
+      () => cancelled);
+    if (!out) return showView('setup');
+    showResult(out);
+  } catch (err) {
+    showView('setup');
+    post({ type: 'notify', message: `Couldn't create the GIF: ${err.message}`, error: true });
+  } finally {
+    if (bitmaps) bitmaps.forEach((b) => b.close());
+  }
+}
+
+function formatBytes(n) {
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${nf.format(n / 1024)} KB`;
+  return `${nf.format(n / 1024 / 1024)} MB`;
+}
+
+function showResult(out) {
+  if (result) URL.revokeObjectURL(result.url);
+  const blob = new Blob([out.bytes], { type: 'image/gif' });
+  result = { ...out, url: URL.createObjectURL(blob), name: fileName(), scale: settings.scale };
+  $('resultImg').src = result.url;
+  $('mSize').textContent = formatBytes(out.bytes.length);
+  $('mDims').textContent = `${out.width}×${out.height}`;
+  $('mFrames').textContent = `${out.frames} · ${formatSeconds(out.duration)}`;
+  showView('result');
+}
+
+function download() {
+  const a = document.createElement('a');
+  a.href = result.url;
+  a.download = result.name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+}
+
+function insertIntoFigma() {
+  post({
+    type: 'insert',
+    bytes: result.bytes,
+    width: Math.round(result.width / result.scale),
+    height: Math.round(result.height / result.scale),
+    name: result.name.replace(/\.gif$/, ''),
+  });
+}
+
+// ---------- Messages from the plugin ----------
+
+window.onmessage = (event) => {
+  const msg = event.data && event.data.pluginMessage;
+  if (!msg) return;
+  switch (msg.type) {
+    case 'init':
+      settings = { ...DEFAULTS, ...(msg.settings || {}) };
+      syncSettingsUI();
+      break;
+
+    case 'selection': {
+      selectionVersion = msg.version;
+      const prevIds = new Set(frames.map((f) => f.id));
+      frames = msg.frames;
+      container = msg.container;
+      $('childrenBar').hidden = !msg.canUseChildren;
+      $('useChildren').checked = msg.useChildren;
+      const sameSet = frames.length === prevIds.size && frames.every((f) => prevIds.has(f.id));
+      if (settings.sort === 'manual' && !sameSet) settings.sort = DEFAULTS.sort;
+      if (settings.sort === 'manual') order = order.filter((id) => frameById(id));
+      else applySort();
+      syncSettingsUI();
+      renderList();
+      break;
+    }
+
+    case 'thumb': {
+      if (msg.version !== selectionVersion) return;
+      if (thumbs.has(msg.id)) URL.revokeObjectURL(thumbs.get(msg.id));
+      const url = URL.createObjectURL(new Blob([msg.bytes], { type: 'image/png' }));
+      thumbs.set(msg.id, url);
+      const li = rowEls.get(msg.id);
+      if (li) li.querySelector('.thumb').src = url;
+      break;
+    }
+
+    case 'export-frame': if (exportJob) exportJob.frame(msg); break;
+    case 'export-done': if (exportJob) exportJob.done(); break;
+    case 'export-cancelled': if (exportJob) exportJob.cancelled(); break;
+    case 'export-error': if (exportJob) exportJob.error(msg.message); break;
+  }
+};
+
+// ---------- Wiring ----------
+
+bindSettings();
+$('sort').addEventListener('change', (e) => {
+  settings.sort = e.target.value;
+  saveSettings();
+  applySort();
+  renderList();
+});
+$('reverse').addEventListener('click', () => {
+  order.reverse();
+  settings.sort = 'manual';
+  syncSettingsUI();
+  renderList();
+});
+$('useChildren').addEventListener('change', (e) => post({ type: 'use-children', value: e.target.checked }));
+$('make').addEventListener('click', makeGif);
+$('cancel').addEventListener('click', () => {
+  cancelled = true;
+  post({ type: 'cancel' });
+  if (exportJob) exportJob.cancelled();
+});
+$('back').addEventListener('click', () => showView('setup'));
+$('download').addEventListener('click', download);
+$('insert').addEventListener('click', insertIntoFigma);
+
+syncSettingsUI();
+renderList();
+post({ type: 'ready' });
+</script>
+</body>
+</html>
